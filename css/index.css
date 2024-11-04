@@ -87,7 +87,7 @@ nav button {
 
 div.solo-mobile {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
 }
 
 
@@ -96,7 +96,8 @@ div.solo-mobile {
 .burger-menu {
     background-color: rgb(25, 25, 25);
     margin-right: 10px;
-    width: 110px;
+    width: 90px;
+    font-size: 12px;
 }
 
 .burger-menu li {
@@ -334,6 +335,11 @@ h1 {
     margin-bottom: -20px;
 }
 
+.conteiner-cuatro p{
+   font-size: 12px;
+}
+
+
 /* Estilos para pantallas grandes */
 @media (min-width: 1024px) {
 
@@ -364,10 +370,10 @@ h1 {
 
     .body-container {
         display: flex;
-        justify-content: flex-start;
+        justify-content: center;
     }
 
-    .solo-desktop {
+    .solo-desktop.solo-desktop {
         display: flex;
         justify-content: center;
     }
@@ -376,7 +382,8 @@ h1 {
     /*BURGER-MENU*/
 
     .burger-menu {
-        width: 12%;
+        width: 10%;
+        font-size: 17px;
     }
 
     .burger-menu li {
@@ -654,5 +661,10 @@ h1 {
         justify-content: center;
         margin: 0px;
     }
+
+    .conteiner-cuatro p{
+        font-size: 19px;
+     }
+     
 
 }
