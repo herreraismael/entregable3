@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4 en Línea Profesional</title>
+    <style>
+        /*estilos generales */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /*contenedor del juego */
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #222;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        /*contenedor del tablero */
+        #game {
+            display: grid;
+            grid-template-columns: repeat(7, 60px);
+            gap: 6px;
+            background-color: blue;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        /*estilo para las celdas */
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: #000000;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /*estilo de las fichas */
+        .piece {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            margin: 0 5px;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            cursor: pointer;
+        }
+
+        .piece.Batman {
+            background-image: url(./imgs/batman.png);
+            box-shadow: 0 5px 10px rgb(255, 255, 255);
+        }
+
+        .piece.Joker {
+            background-image: url(./imgs/joker.jpg);
+            box-shadow: 0 5px 10px rgb(0, 0, 0);
+        }
+
+        /*efecto de arrastre */
+        .dragging {
+            transform: scale(1.2);
+            opacity: 0;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.7);
+        }
+
+        /*mensaje de estado */
+        #status {
+            font-size: 1.2em;
+            padding: 10px 20px;
+            background-color: #333;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            color: #fff;
+        }
+
+        /*mensaje de reinicio */
+        #restart-message {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1.5em;
+            z-index: 10;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #555;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #444;
+        }
+
+        .buttons-container {
+
+            display: flex;
+        }
+
+        .buttons-container * {
+
+            margin: 5px;
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222;
+            color: white;
+        }
+
+        .input-container * {
+            margin: 15px;
+        }
+
+        .input-count {
+            width: 120px;
+            height: 30px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div id="input-container" class="input-container">
+        <h1>MENU</h1>
+        <label for="winningCount">Ingrese el número de fichas para ganar (3, 4, 5 o 6):</label>
+        <input type="number" id="winningCount" min="3" max="6" value="4" class="input-count">
+        <button id="startGame">Iniciar Juego</button>
+    </div>
+
+    <div id="game-container">
+        <div id="status">Turno de Batman</div>
+        <div id="game"></div>
+        <div id="restart-message">Reiniciando el juego...</div>
+        <div class="buttons-container">
+            <button onclick="resetGame()">Reiniciar Juego</button>
+            <button onclick="cambiarFichas()">Cambiar fichas</button>
+        </div>
+    </div>
+
+    <script>
+
+        //mostrar el formulario antes de iniciar el juego
+        document.getElementById('startGame').addEventListener('click', function () {
+            const input = document.getElementById('winningCount').value;
+            winningCount = parseInt(input);
+
+            if (winningCount >= 3 && winningCount <= 6) {
+                //ocultar el formulario y mostrar el juego
+                document.getElementById('input-container').style.display = 'none';
+                document.getElementById('game-container').style.display = 'flex';
+                resetGame(); // reiniciar el juego para que empiece correctamente
+            } else {
+                alert('Por favor, ingrese un número válido (3, 4, 5 o 6).');
+            }
+        });
+
+        //al cargar la página, oculta el contenedor del juego
+        document.getElementById('game-container').style.display = 'none';
+
+
+        //asignar valores necesarios del juego
+
+        const ROWS = 6;
+        const COLS = 7;
+        const gameContainer = document.getElementById('game');
+        const statusText = document.getElementById('status');
+        const restartMessage = document.getElementById('restart-message');
+
+        let currentPlayer = 1;
+        let player = 0;
+        let playerFromEvent = 0;
+        let targetColFromEvent = 0;
+
+        let winningCount = 4;
+
+        let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+
+
+        //crear celdas del tablero
+
+        for (let row = 0; row < ROWS; row++) {
+            for (let col = 0; col < COLS; col++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.row = row;
+                cell.dataset.col = col;
+                gameContainer.appendChild(cell);
+            }
+        }
+
+
+        //crear contenedor de las fichas arrastrables
+
+        const pieceContainer = document.createElement('div');
+        pieceContainer.style.display = 'flex';
+        pieceContainer.style.justifyContent = 'center';
+        pieceContainer.style.marginBottom = '10px';
+
+
+        //crear ficha batman
+
+        const batmanPiece = document.createElement('div');
+
+        batmanPiece.classList.add('piece', 'Batman');
+        batmanPiece.draggable = true;
+
+        batmanPiece.addEventListener('dragstart', (event) => {
+            if (currentPlayer === 1) {
+                event.dataTransfer.setData('text/plain', 'Batman'); //guardar valor Batman data transfer del evento
+                batmanPiece.classList.add('dragging'); //añadir clase de arrastre
+            } else {
+                event.preventDefault(); //bloquea el arrastre si no es el turno de Batman
+            }
+        });
+
+        batmanPiece.addEventListener('dragend', () => {
+            batmanPiece.classList.remove('dragging'); //eliminar clase de arrastre
+        });
+
+        pieceContainer.appendChild(batmanPiece);
+
+
+        //crear ficha joker
+
+        const jokerPiece = document.createElement('div');
+
+        jokerPiece.classList.add('piece', 'Joker');
+        jokerPiece.draggable = true;
+
+        jokerPiece.addEventListener('dragstart', (event) => {
+            if (currentPlayer === 2) {
+                event.dataTransfer.setData('text/plain', 'Joker');
+                jokerPiece.classList.add('dragging');
+            } else {
+                event.preventDefault();
+            }
+        });
+
+        jokerPiece.addEventListener('dragend', () => {
+            jokerPiece.classList.remove('dragging');
+        });
+
+        pieceContainer.appendChild(jokerPiece);
+
+        function updateDragEvents() {
+            batmanPiece.setAttribute('draggable', currentPlayer === 1);
+            jokerPiece.setAttribute('draggable', currentPlayer === 2);
+        }
+
+        //inicializa el estado de arrastre al cargar el juego
+        updateDragEvents();
+
+        gameContainer.parentNode.insertBefore(pieceContainer, gameContainer);
+
+        //permitir soltar en el tablero
+
+        gameContainer.addEventListener('dragover', (event) => {
+            event.preventDefault(); // permite el drop
+        });
+
+        gameContainer.addEventListener('drop', (event) => {
+            event.preventDefault(); //evita comportamientos por defecto
+            playerFromEvent = event.dataTransfer.getData('text/plain');
+            targetColFromEvent = parseInt(event.target.dataset.col, 10); //conversión a número entero
+
+            if (targetColFromEvent !== undefined) {
+                placePiece(targetColFromEvent, playerFromEvent);
+            }
+
+            console.log(targetColFromEvent);
+        });
+
+        function placePiece(targetColFromEvent, playerFromEvent) {
+
+            //asigno el valor del jugador en relacion a la cadena que venia en el evento (batman 1, joker 2)
+            if (playerFromEvent === 'Batman') {
+                playerValue = 1;
+            } else {
+                playerValue = 2;
+            }
+
+            //itero la columan desde abajo hacia arriba fijandome donde esta el primer lugar vacio para largar la ficha
+            for (let row = ROWS - 1; row >= 0; row--) {
+                if (board[row][targetColFromEvent] === 0) {
+
+                    board[row][targetColFromEvent] = playerValue;
+
+                    animatePiece(row, targetColFromEvent, playerFromEvent);
+
+                    if (checkWin(row, targetColFromEvent, playerValue)) {
+
+                        statusText.innerText = `¡${playerFromEvent} ha ganado!`;
+                        gameContainer.classList.add('game-over');
+
+                        setTimeout(() => {
+                            restartMessage.style.display = 'block';
+                            setTimeout(resetGame, 2000);
+                        }, 1000);
+
+                    } else {
+
+                        if (playerFromEvent === 'Batman') {
+                            currentPlayer = 2;
+                        } else {
+                            currentPlayer = 1;
+                        }
+
+                        statusText.innerText = `Turno de ${playerFromEvent === 'Batman' ? 'Joker' : 'Batman'}`;
+
+                        updateDragEvents();
+                    }
+                    return;
+                }
+            }
+
+            alert('Columna llena. Elige otra.');
+        }
+
+
+        function animatePiece(row, targetColFromEvent, playerFromEvent) {
+
+            const cell = document.querySelector(`.cell[data-row='${row}'][data-col='${targetColFromEvent}']`);
+            const piece = document.createElement('div');
+
+            piece.classList.add('piece', `${playerFromEvent}`);
+            cell.appendChild(piece);
+
+            piece.style.position = 'absolute';
+            piece.style.top = '-60px';
+            piece.style.opacity = '0';
+
+            setTimeout(() => {
+                piece.style.top = '0';
+                piece.style.opacity = '1';
+                piece.style.transition = 'top 0.5s cubic-bezier(0.25, 0.1, 0.25, 1.5), opacity 0.5s';
+            }, 50);
+        }
+
+
+        function checkWin(row, targetColFromEvent, playerFromEvent) {
+
+            //esto verifica si un jugador gano en todas las direcciones desde donde tiro la ultima ficha
+            return (
+                checkDirection(row, targetColFromEvent, 1, 0, playerFromEvent) || //horizontal
+                checkDirection(row, targetColFromEvent, 0, 1, playerFromEvent) || //vertical
+                checkDirection(row, targetColFromEvent, 1, 1, playerFromEvent) || //diagonal /
+                checkDirection(row, targetColFromEvent, 1, -1, playerFromEvent)   //diagonal \
+            );
+
+        }
+
+        //verificación en una dirección específica para ver si hay 4 en línea
+        function checkDirection(row, col, rowDir, colDir, playerValue) {
+            let count = 1;
+
+            //verificar hacia una dirección (positiva)
+            for (let i = 1; i < 4; i++) {
+                let r = row + i * rowDir;
+                let c = col + i * colDir;
+
+                console.log(`Verificando en dirección positiva: (${r}, ${c})`);
+
+                if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === playerValue) {
+                    count++;
+                } else {
+                    break; //detener si no es la misma ficha o estamos fuera del tablero
+                }
+            }
+
+            //verificar en la dirección opuesta (negativa)
+            for (let i = 1; i < 4; i++) {
+                let r = row - i * rowDir;
+                let c = col - i * colDir;
+
+                console.log(`Verificando en dirección negativa: (${r}, ${c})`);
+
+                if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === playerValue) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+
+            return count >= winningCount; //retornar verdadero si se encontraron N o más fichas consecutivas
+        }
+
+        function resetGame() {
+            //reiniciar el tablero
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+
+            //limpiar las celdas del tablero
+            gameContainer.querySelectorAll('.cell').forEach(cell => {
+                cell.innerHTML = '';
+            });
+
+            //reiniciar el jugador actual
+            currentPlayer = 1;
+            statusText.innerText = `Turno de ${currentPlayer === 1 ? 'Batman' : 'Joker'}`;
+            restartMessage.style.display = 'none';
+            gameContainer.classList.remove('game-over');
+
+            //actualizar eventos de arrastre
+            updateDragEvents();
+
+            //asegúrate de restablecer el estado de las piezas
+            batmanPiece.classList.remove('dragging'); //eliminar estado de arrastre
+            jokerPiece.classList.remove('dragging'); //eliminar estado de arrastre
+        }
+
+        function cambiarFichas() {
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('input-container').style.display = 'flex';
+        }
+
+    </script>
+</body>
+
+</html>
